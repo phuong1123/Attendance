@@ -1,5 +1,6 @@
 from tkinter.ttk import *
 from tkinter import filedialog
+from tkinter import messagebox
 import os, cv2
 import tkinter.font
 import string
@@ -34,7 +35,7 @@ def raise_frame(frame):
 def resetTT():
     txtMaSV.delete(0, 'end')
     txtHoTen.delete(0, 'end')
-    txtLop.delete(0, 'end')
+    txtLop.select_set(0)
     txtNgaySinh.delete(0, 'end')
     lblBuoc1.configure(text = "Bước 1:", fg= _primary)
     lblBuoc2.configure(text = "Bước 2:", fg= _primary)
@@ -68,17 +69,16 @@ def is_number(s):
 
 #lấy hình ảnhs
 def TakeImmages():
+    index = txtLop.curselection()[0]
     Id = (txtMaSV.get())
     name = getName()
-    lop = (txtLop.get())
+    lop =  dataLop[index][1]
     dob = (txtNgaySinh.get_date())
 
     if(Id == ""):
         s = "Nhập Mã sinh viên"
         lblBuoc1.configure(text=s, fg=_button)
-    elif(lop == ""):
-        s = "Nhập Lớp"
-        lblBuoc1.configure(text=s, fg=_button)
+    
     else:
         if(is_number(Id) and name.isalpha()):
             cam = cv2.VideoCapture(0, cv2.CAP_DSHOW)
@@ -134,21 +134,7 @@ def TrainImages():
     res = "Xử lý dữ liệu thành công"
     lblBuoc2.configure(text=res, fg = _green)
 
-# def getImagesAndLabels(detector):
-#         path = "TrainingImages/"
-#         imagePaths = [os.path.join(path,f) for f in os.listdir(path)]     
-#         faceSamples=[]
-#         ids = []
-#         for imagePath in imagePaths:
-#             PIL_image = Image.open(imagePath)
-#             PIL_img= PIL_image.convert('L') 
-#             img_numpy = np.array(PIL_img,'uint8')
-#             id = int(os.path.split(imagePath)[-1].split(".")[1])
-#             faces = detector.detectMultiScale(img_numpy)
-#             for (x,y,w,h) in faces:
-#                 faceSamples.append(img_numpy[y:y+h,x:x+w])
-#                 ids.append(id)
-#         return faceSamples,ids
+
 
 def getImagesAndLabels(detector, path):
         imagePaths = [os.path.join(path,f) for f in os.listdir(path)]     
@@ -164,6 +150,24 @@ def getImagesAndLabels(detector, path):
                 faceSamples.append(img_numpy[y:y+h,x:x+w])
                 ids.append(id)
         return faceSamples,ids
+
+
+
+def acceptAttendance():
+    indexOption = txtOption.curselection()[0]
+    res = dataLop[indexOption][1]
+    resOption = "Bạn có xác nhận điểm danh lớp " + res + " không?"
+    messageboxOption = messagebox.askquestion("Xác nhận", resOption)
+    if messageboxOption == 'yes':
+        TrackImages()
+    else:
+        raise_frame(f1)
+
+
+def  returnTenLop():
+    indexOption = txtOption.curselection()[0]
+    res = dataLop[indexOption][1]
+    return res
 
 
 def TrackImages():
@@ -184,6 +188,8 @@ def TrackImages():
         ret, im = cam.read()
         gray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
         faces = faceCascade.detectMultiScale(gray, 1.2, 5)
+
+
         for(x, y, w, h) in faces:
             cv2.rectangle(im, (x, y), (x+w, y+h), (225, 0, 0), 2)
             Id, conf = recognizer.predict(gray[y:y+h, x:x+w])
@@ -222,6 +228,7 @@ def TrackImages():
         attendance = attendance.drop_duplicates(subset=['Id'], keep='first')
         info = info.drop_duplicates(subset=['Id'], keep='first')
 
+
         cv2.imshow('Diem danh', im)
         if (cv2.waitKey(1) == ord('q')):
             break
@@ -229,7 +236,8 @@ def TrackImages():
         date = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d')
         timeStamp = datetime.datetime.fromtimestamp(ts).strftime('%H:%M:%S')
         Hour, Minute, Second = timeStamp.split(":")
-        fileName = "Attendance"+os.sep+"Attendance_"+date+"_"+Hour+".csv"
+
+        fileName = "Attendance"+os.sep+returnTenLop()+"_"+date+"_"+Hour+".csv"
         attendance.to_csv(fileName, index=False)
         res= "ĐIỂM DANH THÀNH CÔNG"
         lblThongBao.configure(text = res, fg = _green)
@@ -238,7 +246,7 @@ def TrackImages():
     cv2.destroyAllWindows() 
     resTime = Hour + ":" + Minute + ", " + date
     lblSetThoiGian.configure(text = resTime)
-    naviDiemDanh()
+    raise_frame(f3)
 
 
 #chuyển sang màn thêm sinh thông tin sv
@@ -269,12 +277,14 @@ root.grid_columnconfigure(0, weight=1)
 f1 = Frame(root)
 f2 = Frame(root)
 f3 = Frame(root)
+f4 = Frame(root)
 
 f1.configure(background=_primary)
 f2.configure(background=_primary)
 f3.configure(background=_primary)
+f4.configure(background=_primary)
 
-for frame in (f1, f2, f3):
+for frame in (f1, f2, f3, f4):
     frame.grid(row=0, column=0, sticky='news')
 
 
@@ -289,7 +299,7 @@ lblTitle = Label(f1, text='Hệ thống điểm danh bằng nhận diện khuôn
     "Segoe UI", 30, "bold"), bg=_primary, fg=_yellow).pack(padx=170, pady=70)
 
 
-btnDiemDanh = Button(f1, bg = _white, width  = 217 , height = 217, command=TrackImages)
+btnDiemDanh = Button(f1, bg = _white, width  = 217 , height = 217, command=lambda:raise_frame(f4))
 btnDiemDanh.place(x=387, y=230)
 miDiemDanh = PhotoImage(file = "btn_diem_danh.png")
 tmiDiemDanh = miDiemDanh.subsample(1,1)
@@ -343,12 +353,28 @@ txtNgaySinh.place(x=300, y=438)
 
 lblLop = Label(f2, text="Lớp", font=("Segoe UI", 15),
                 fg=_gray, bg=_white).place(x=115, y=518)
-txtLop = Entry(f2, width=40, font=("Segoe UI", 15),relief =SUNKEN, bg = _lightEntry)
-txtLop.place(x=300, y=518)
+# txtLop = Entry(f2, width=40, font=("Segoe UI", 15),relief =SUNKEN, bg = _lightEntry)
+# txtLop.place(x=300, y=518)
+
+filePathLop = 'ListClass/listClass.csv'
+fileLop = open(filePathLop)
+readerLop = csv.reader(fileLop)
+dataLop = list(readerLop)
+del(dataLop[0])
+
+list_lop= []
+for x in list(range(0, len(dataLop))):
+    list_lop.append(dataLop[x][1])
+    
+txtLop = Listbox(f2, width = 30, height = 5, font=("Segoe UI", 12))
+for x, y in enumerate(list_lop):
+    txtLop.insert(x,y)
+    txtLop.select_set(0)
+txtLop.place(x=300, y = 518)
 
 ################################################################################################
 btnReset = tk.Button(f2, text="Reset thông tin", bg=_white, relief = FLAT,
-                 fg=_primary, font=("Segoe UI", 12), command = resetTT).place(x=300, y=555)
+                 fg=_primary, font=("Segoe UI", 12), command = resetTT).place(x=620, y=510)
 
 
 lblBuoc1 = Label(f2, text="Bước 1: ", font=(
@@ -417,10 +443,46 @@ lblSetThoiGian.place(x=638, y=474)
 
 
 btnLuu = Button(f3, text="ĐIỂM DANH", fg=_white, bg=_lightBlue, 
-                font=("Segoe UI", 15), width=10, command = TrackImages).place(x=1080, y=598)
+                font=("Segoe UI", 15), width=10, command = lambda:raise_frame(f4)).place(x=1080, y=598)
 
 btnHuy = Button(f3, text="Trở lại trang chủ", fg=_primary, bg=_white, relief=FLAT,
-                font=("Segoe UI", 15), command = f3.destroy).place(x=915, y=598)
+                font=("Segoe UI", 15), command = lambda:raise_frame(f1)).place(x=915, y=598)
+
+
+
+################################################################################################
+################################################################################################
+################################################################################################
+###################################### F4: First Option
+lblTitle = Label(f4, text='Hệ thống điểm danh bằng nhận diện khuôn mặt', font=(
+                "Segoe UI", 30, "bold"), bg=_primary, fg=_yellow).place(x=170, y=46)
+
+
+lblBackground = Label(f4, text="", bg=_white, width=168,
+                                            height=36).place(x=52, y=127)
+
+
+lblSubTitle = Label(f4, text="Lựa chọn lớp: ", font=(
+                        "Segoe UI", 15), bg=_white).place(x=115, y=195)
+
+
+txtOption = Listbox(f4, width = 40, height = 6, font = ("Segoe UI", 12))
+for x, y in enumerate(list_lop):
+    txtOption.insert(x,y)
+    txtOption.select_set(0)
+txtOption.place(x = 300, y = 195)
+
+
+btnSelect = Button(f4, text = "Xác nhận", bg = _primary, fg = _white, width = 20,
+                 font = ("Segoe UI", 12), command= lambda: acceptAttendance())
+btnSelect.place(x = 750, y = 195)
+
+btnBackToHome = Button(f4, text="Hủy", fg=_primary, bg=_white, relief=FLAT,
+                font=("Segoe UI", 15), command = lambda:raise_frame(f1))
+btnBackToHome.place(x=915, y=598)
+
+
+
 
 ################################################################################################
 ################################################################################################

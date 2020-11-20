@@ -1,4 +1,5 @@
 import tkinter as tk
+import csv
 
 _primary = "#0D6AB1"
 _white = "#fff"
@@ -27,14 +28,41 @@ class SampleApp(tk.Tk):
 class Home(tk.Frame):
     def __init__(self, master):
         tk.Frame.__init__(self, master)
-        # tk.Label(self, text="This is the start page").pack(side="top", fill="x", pady=10)
         
-        lblTitle = tk.Label(self, text='Hệ thống điểm danh bằng nhận diện khuôn mặt', font=(
-                    "Segoe UI", 30, "bold"), bg=_primary, fg=_yellow).pack(padx=170, pady=70)
+        filePath = 'ListClass/listClass.csv'
+        File = open(filePath)
+        Reader = csv.reader(File)
+        Data = list(Reader)
+        del(Data[0])
+
+        list_of_entries = []
+        for x in list(range(0, len(Data))):
+            list_of_entries.append(Data[x][1])
+
+        # print(list_of_entries)
+        listbox = tk.Listbox(self)
+        for x, y in enumerate(list_of_entries):
+            listbox.insert(x,y)
+            listbox.select_set(0)
+        listbox.pack()
+
+        def update():
+            index = listbox.curselection()[0]
+            ok = Data[index][1]
+            txtTest.configure(text = ok)
+            return None
+
+
+        
+        btn03 = tk.Button(self, text="Lấy Tên lớp từ listbox",
+                    command=lambda: update()).pack()
         btn01 = tk.Button(self, text="Thêm thông tin",
                     command=lambda: master.switch_frame(ThemTT)).pack()
         btn02 = tk.Button(self, text="Điểm danh",
                     command=lambda: master.switch_frame(DiemDanh)).pack()
+
+        txtTest = tk.Label(self, text = "Kết quả hiển thị ở đây")
+        txtTest.pack()
 
 class ThemTT(tk.Frame):
     def __init__(self, master):
@@ -85,4 +113,5 @@ class DiemDanh(tk.Frame):
 
 if __name__ == "__main__":
     app = SampleApp()
+    app.geometry("600x400")
     app.mainloop()
